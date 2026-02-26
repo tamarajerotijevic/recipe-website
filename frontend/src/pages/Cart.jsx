@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { deleteFromCart as apiDeleteFromCart, updateCartItem as apiUpdateCartItem, clearCart as apiClearCart } from '../api/cart';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
+import { checkout as apiCheckout } from '../api/orders';
 
 export default function Cart({ role, cartItems, setCartItems }) {
   const navigate = useNavigate();
@@ -38,6 +39,27 @@ export default function Cart({ role, cartItems, setCartItems }) {
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => total + item.price * item.totalQuantity, 0);
   };
+
+  const handleCheckout = async () => {
+  try {
+    const result = await apiCheckout({
+      paymentMethod: "CARD",
+      simulate: "success", 
+      deliveryAddress: "Test adresa 12",
+    });
+
+    alert(result.message);
+
+    // Ako je uspešno, isprazni korpu
+    if (result.paymentStatus === "PAID") {
+      setCartItems([]);
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Greška pri plaćanju.");
+  }
+};
 
   // Provera uloge
   if (role !== 'user') {
@@ -130,7 +152,7 @@ export default function Cart({ role, cartItems, setCartItems }) {
             </div>
 
             {/* Akcije korpe */}
-            <div className="cart-actions">
+                        <div className="cart-actions">
               <Button
                 label="Isprazni korpu"
                 onClick={() => {
@@ -145,7 +167,7 @@ export default function Cart({ role, cartItems, setCartItems }) {
               />
               <Button
                 label="Plaćanje"
-                onClick={() => alert(`Checkout: ${calculateTotal().toFixed(2)} RSD`)}
+                onClick={handleCheckout}
                 variant="primary"
               />
             </div>
