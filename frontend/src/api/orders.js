@@ -1,20 +1,25 @@
-export async function checkout(data) {
-  const token = localStorage.getItem("token");
+// frontend/src/api/orders.js
+import { apiFetch } from "./client";
 
-  const res = await fetch("http://localhost:3001/api/orders/checkout", {
+export async function checkout(data) {
+  return apiFetch("/orders/checkout", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(data),
   });
+}
 
-  const result = await res.json();
+// ADMIN
+export async function adminGetOrders() {
+  return apiFetch("/orders/admin", { method: "GET" });
+}
 
-  if (!res.ok) {
-    throw new Error(result.message || "Greška pri plaćanju.");
-  }
+export async function adminGetOrder(id) {
+  return apiFetch(`/orders/admin/${id}`, { method: "GET" });
+}
 
-  return result;
+export async function adminUpdateOrderStatus(id, status) {
+  return apiFetch(`/orders/admin/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 }

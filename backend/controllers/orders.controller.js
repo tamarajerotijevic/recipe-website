@@ -86,3 +86,145 @@ exports.checkout = async (req, res) => {
     return res.status(500).json({ message: "Greška pri kreiranju narudžbine." });
   }
 };
+
+const ALLOWED_STATUSES = ["NEW", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+
+exports.adminList = async (req, res) => {
+  try {
+    const orders = await db.Order.findAll({
+      include: [{ model: db.User, attributes: ["id", "name", "email"] }],
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.json(
+      (orders || []).map((o) => ({
+        id: o.id,
+        userId: o.userId,
+        user: o.User ? { id: o.User.id, name: o.User.name, email: o.User.email } : null,
+        totalAmount: toNumber(o.totalAmount),
+        currency: o.currency,
+        paymentStatus: o.paymentStatus,
+        status: o.status,
+        paidAt: o.paidAt,
+        deliveryAddress: o.deliveryAddress,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Greška pri učitavanju narudžbina." });
+  }
+};
+
+exports.adminGetById = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const order = await db.Order.findByPk(id, {
+      include: [
+        { model: db.User, attributes: ["id", "name", "email"] },
+        { model: db.OrderItem, as: "items" },
+        {
+          model: db.OrderStatusHistory,
+          as: "history",
+          separate: true,
+          order: [["createdAt", "DESC"]],
+          include: [{ model: db.User, attributes: ["id", "name", "email"] }],
+        },
+      ],
+    });
+
+    if (!order) return res.status(404).json({ message: "Narudžbina ne postoji." });
+
+    return res.json({
+      id: order.id,
+      userId: order.userId,
+      user: order.User ? { id: order.User.id, name: order.User.name, email: order.User.email } : null,
+      totalAmount: toNumber(order.totalAmount),
+      currency: order.currency,
+      paymentStatus: order.paymentStatus,
+      status: order.status,
+      paidAt: order.paidAt,
+      deliveryAddress: order.deliveryAddress,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+
+      items: (order.items || []).map((it) => ({
+        id: it.id,
+        productId: it.productId,
+        productNameSnapshot: it.productNameSnapshot,
+        unitPriceSnapshot: toNumber(it.unitPriceSnapshot),
+        quantity: it.quantity,
+        lineTotal: toNumber(it.lineTotal),
+      })),
+
+      history: (order.history || []).map((h) => ({
+        id: h.id,
+        oldStatus: h.oldStatus,
+        newStatus: h.newStatus,
+        changedByUserId: h.changedByUserId,
+        changedBy: h.User ? { id: h.User.id, name: h.User.name, email: h.User.email } : null,
+        createdAt: h.createdAt,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Greška pri učitavanju detalja narudžbine." });
+  }
+};
+
+exports.adminUpdateStatus = async (req, res) => {
+  const id = Number(req.params.id);
+  const { status } = req.body;
+
+  if (!ALLOWED_STATUSES.includes(status)) {
+    return res.status(400).json({
+      message: `Neispravan status. Dozvoljeno: ${ALLOWED_STATUSES.join(", ")}`,
+    });
+  }
+
+  const t = await db.sequelize.transaction();
+  try {
+    const order = await db.Order.findByPk(id, { transaction: t });
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({ message: "Narudžbina ne postoji." });
+    }
+
+    const oldStatus = order.status;
+    const newStatus = status;
+
+    if (oldStatus === newStatus) {
+      await t.rollback();
+      return res.json({ message: "Status je već postavljen.", status: order.status });
+    }
+
+    order.status = newStatus;
+    await order.save({ transaction: t });
+
+    const historyEntry = await db.OrderStatusHistory.create(
+      {
+        orderId: order.id,
+        changedByUserId: req.user?.id || null,
+        oldStatus,
+        newStatus,
+      },
+      { transaction: t }
+    );
+
+    await t.commit();
+
+    return res.json({
+      message: "Status uspešno izmenjen.",
+      orderId: order.id,
+      oldStatus,
+      newStatus,
+      historyId: historyEntry.id,
+    });
+  } catch (err) {
+    await t.rollback();
+    console.error(err);
+    return res.status(500).json({ message: "Greška pri promeni statusa." });
+  }
+};

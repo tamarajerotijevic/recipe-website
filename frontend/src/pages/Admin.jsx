@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DUMMY_ORDERS } from '../data';
+import { adminGetOrders, adminGetOrder, adminUpdateOrderStatus } from "../api/orders";
 import { createProduct, deleteProduct as apiDeleteProduct, getProducts } from '../api/products';
 import { createRecipe, deleteRecipe as apiDeleteRecipe, getRecipes } from '../api/recipes';
 import { getIngredientTypes } from '../api/ingredientTypes';
@@ -10,7 +10,12 @@ export default function Admin({ role }) {
   // useState hooks za admin
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
-  const [orders, setOrders] = useState(DUMMY_ORDERS);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [orderDetailsLoading, setOrderDetailsLoading] = useState(false);
   const [recipes, setRecipes] = useState([]);
   const [recipesLoading, setRecipesLoading] = useState(true);
   const [ingredientTypes, setIngredientTypes] = useState([]);
@@ -35,6 +40,28 @@ export default function Admin({ role }) {
     quantity: '',
     unit: ''
   });
+
+  const fetchOrders = () => {
+  setOrdersLoading(true);
+  return adminGetOrders()
+    .then((data) => {
+      const normalized = (data || []).map((o) => ({
+        id: o.id,
+        customer: o.user?.name || o.user?.email || `User#${o.userId}`,
+        date: o.createdAt ? new Date(o.createdAt).toLocaleString("sr-RS") : "",
+        totalAmount: Number(o.totalAmount || 0),
+        currency: o.currency || "RSD",
+        paymentStatus: o.paymentStatus || "",
+        status: o.status || "NEW",
+      }));
+      setOrders(normalized);
+    })
+    .catch((err) => {
+      console.error(err);
+      alert(err?.message || "Greška pri učitavanju porudžbina.");
+    })
+    .finally(() => setOrdersLoading(false));
+};
 
   const fetchProducts = () => {
     setProductsLoading(true);
@@ -98,15 +125,19 @@ export default function Admin({ role }) {
 
   // Ucitaj proizvode sa API-ja
   useEffect(() => {
-    if (role !== 'admin') {
-      setProductsLoading(false);
-      setRecipesLoading(false);
-      return;
-    }
-    fetchProducts();
-    fetchRecipes();
-    fetchIngredientTypes();
-  }, [role]);
+  if (role !== "admin") {
+  setProductsLoading(false);
+  setRecipesLoading(false);
+  setOrdersLoading(false);
+  return;
+}
+
+  fetchProducts();
+  fetchRecipes();
+  fetchIngredientTypes();
+  fetchOrders(); 
+
+}, [role]);
 
   // Provera uloge
   if (role !== 'admin') {
@@ -268,17 +299,47 @@ export default function Admin({ role }) {
       });
   };
 
-  // Order Management
-  const handleChangeOrderStatus = (id, newStatus) => {
-    setOrders(orders.map(order =>
-      order.id === id ? { ...order, status: newStatus } : order
-    ));
-  };
 
   const handleInputChange = (e, setState) => {
     const { name, value } = e.target;
     setState(prev => ({ ...prev, [name]: value }));
   };
+
+  const openOrderModal = (id) => {
+  setOrderModalOpen(true);
+  setSelectedOrderId(id);
+  setOrderDetails(null);
+  setOrderDetailsLoading(true);
+
+  adminGetOrder(id)
+    .then((data) => setOrderDetails(data))
+    .catch((err) => {
+      console.error(err);
+      alert(err?.message || "Greška pri učitavanju detalja porudžbine.");
+      setOrderModalOpen(false);
+    })
+    .finally(() => setOrderDetailsLoading(false));
+};
+
+const closeOrderModal = () => {
+  setOrderModalOpen(false);
+  setSelectedOrderId(null);
+  setOrderDetails(null);
+};
+
+const handleChangeOrderStatus = (orderId, newStatus) => {
+  return adminUpdateOrderStatus(orderId, newStatus)
+    .then(() => fetchOrders())
+    .then(() => {
+      if (selectedOrderId) {
+        return adminGetOrder(selectedOrderId).then((details) => setOrderDetails(details));
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert(err?.message || "Greška pri promeni statusa.");
+    });
+};
 
   return (
     <div className="admin-page">
@@ -605,13 +666,14 @@ export default function Admin({ role }) {
           <h3>Upravljanje porudžbinama</h3>
           <div className="admin-list">
             <h4>Porudžbine ({orders.length})</h4>
+            {ordersLoading && <p>Učitavanje porudžbina...</p>}
             <table className="admin-table">
               <thead>
                 <tr>
                   <th>Šifra porudžbine</th>
                   <th>Kupac</th>
                   <th>Datum</th>
-                  <th>Plaćeno</th>
+                  <th>Iznos</th>
                   <th>Status</th>
                   <th></th>
                 </tr>
@@ -622,23 +684,24 @@ export default function Admin({ role }) {
                     <td>{order.id}</td>
                     <td>{order.customer}</td>
                     <td>{order.date}</td>
-                    <td>{order.total.toFixed(2)} RSD</td>
+                    <td>{order.totalAmount.toFixed(2)} {order.currency}</td>
                     <td>
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleChangeOrderStatus(order.id, e.target.value)}
-                        className="status-select"
-                      >
-                        <option value="Pending">Na čekanju</option>
-                        <option value="Shipped">Poslato</option>
-                        <option value="Delivered">Isporučenno</option>
-                        <option value="Cancelled">Otkazano</option>
-                      </select>
+                     <select
+                      value={order.status}
+                      onChange={(e) => handleChangeOrderStatus(order.id, e.target.value)}
+                      className="status-select"
+                    >
+                      <option value="NEW">Novo</option>
+                      <option value="PROCESSING">U obradi</option>
+                      <option value="SHIPPED">Poslato</option>
+                      <option value="DELIVERED">Isporučeno</option>
+                      <option value="CANCELLED">Otkazano</option>
+                    </select>
                     </td>
                     <td>
                       <Button
                         label="Pregledaj"
-                        onClick={() => alert(`Order #${order.id} - ${order.customer}`)}
+                        onClick={() => openOrderModal(order.id)}
                         variant="secondary"
                         className="action-btn"
                       />
@@ -650,6 +713,117 @@ export default function Admin({ role }) {
           </div>
         </div>
       )}
+
+
+      {orderModalOpen && (
+  <div className="recipe-details-modal" onClick={closeOrderModal}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <button className="close-modal" onClick={closeOrderModal}>×</button>
+
+      <h2>Detalji porudžbine #{selectedOrderId}</h2>
+
+      {orderDetailsLoading && <p>Učitavanje...</p>}
+
+      {!orderDetailsLoading && orderDetails && (
+        <>
+          <div className="modal-details">
+            <div className="detail-item">
+            <b>Kupac:</b> {orderDetails.user?.name || orderDetails.user?.email || `User#${orderDetails.userId}`}            </div>
+
+            <div className="detail-item">
+              <b>Datum:</b>{" "}
+              {orderDetails.createdAt
+                ? new Date(orderDetails.createdAt).toLocaleString("sr-RS")
+                : ""}
+            </div>
+
+            <div className="detail-item">
+              <b>Iznos:</b>{" "}
+              {Number(orderDetails.totalAmount || 0).toFixed(2)}{" "}
+              {orderDetails.currency}
+            </div>
+
+            <div className="detail-item">
+              <b>Status:</b>{" "}
+              <select
+                value={orderDetails.status}
+                onChange={(e) =>
+                  handleChangeOrderStatus(orderDetails.id, e.target.value)
+                }
+                className="status-select"
+              >
+                <option value="NEW">Novo</option>
+                <option value="PROCESSING">U obradi</option>
+                <option value="SHIPPED">Poslato</option>
+                <option value="DELIVERED">Isporučeno</option>
+                <option value="CANCELLED">Otkazano</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="modal-ingredients">
+            <h4>Stavke</h4>
+
+            {!orderDetails.items?.length ? (
+              <p>Nema stavki.</p>
+            ) : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Proizvod</th>
+                    <th>Cena</th>
+                    <th>Količina</th>
+                    <th>Ukupno</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderDetails.items.map((it) => (
+                    <tr key={it.id}>
+                      <td>{it.productNameSnapshot}</td>
+                      <td>
+                        {Number(it.unitPriceSnapshot).toFixed(2)}{" "}
+                        {orderDetails.currency}
+                      </td>
+                      <td>{it.quantity}</td>
+                      <td>
+                        {Number(it.lineTotal).toFixed(2)}{" "}
+                        {orderDetails.currency}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="modal-ingredients">
+            <h4>Istorija statusa</h4>
+
+            {!orderDetails.history?.length ? (
+              <p>Nema istorije promena.</p>
+            ) : (
+              <ul>
+                {orderDetails.history.map((h) => (
+                  <li key={h.id}>
+                    <b>{h.oldStatus}</b> → <b>{h.newStatus}</b>{" "}
+                    ({h.changedBy?.name || h.changedBy?.email || "sistem"}) —{" "}
+                    {h.createdAt
+                      ? new Date(h.createdAt).toLocaleString("sr-RS")
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+)}
+
+
+
+
     </div>
   );
 }
