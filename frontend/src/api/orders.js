@@ -23,3 +23,11 @@ export async function adminUpdateOrderStatus(id, status) {
     body: JSON.stringify({ status }),
   });
 }
+
+export async function adminGetMonthlyStats() {
+  return apiFetch("/orders/admin/stats/monthly", { method: "GET" });
+}
+
+export async function adminGetTopProducts() {
+  return apiFetch("/orders/admin/stats/top-products", { method: "GET" });
+}

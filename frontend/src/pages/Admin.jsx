@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { adminGetOrders, adminGetOrder, adminUpdateOrderStatus } from "../api/orders";
+import { Chart } from "react-google-charts";
+import { adminGetMonthlyStats, adminGetOrders, adminGetOrder, adminGetTopProducts, adminUpdateOrderStatus } from "../api/orders";
 import { createProduct, deleteProduct as apiDeleteProduct, getProducts } from '../api/products';
 import { createRecipe, deleteRecipe as apiDeleteRecipe, getRecipes } from '../api/recipes';
 import { getIngredientTypes } from '../api/ingredientTypes';
@@ -16,6 +17,10 @@ export default function Admin({ role }) {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [orderDetailsLoading, setOrderDetailsLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(null);
+  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [topProductsStats, setTopProductsStats] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [recipesLoading, setRecipesLoading] = useState(true);
   const [ingredientTypes, setIngredientTypes] = useState([]);
@@ -41,6 +46,13 @@ export default function Admin({ role }) {
     unit: ''
   });
 
+  const formatMonth = (value) => {
+    if (!value) return "";
+    const parts = String(value).split("-");
+    if (parts.length !== 2) return value;
+    return `${parts[1]}/${parts[0]}`;
+  };
+
   const fetchOrders = () => {
   setOrdersLoading(true);
   return adminGetOrders()
@@ -62,6 +74,21 @@ export default function Admin({ role }) {
     })
     .finally(() => setOrdersLoading(false));
 };
+
+  const fetchStats = () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    return Promise.all([adminGetMonthlyStats(), adminGetTopProducts()])
+      .then(([monthly, topProducts]) => {
+        setMonthlyStats(monthly?.items || []);
+        setTopProductsStats(topProducts?.items || []);
+      })
+      .catch((err) => {
+        console.error(err);
+        setStatsError(err?.message || "Greška pri učitavanju statistike.");
+      })
+      .finally(() => setStatsLoading(false));
+  };
 
   const fetchProducts = () => {
     setProductsLoading(true);
@@ -136,6 +163,7 @@ export default function Admin({ role }) {
   fetchRecipes();
   fetchIngredientTypes();
   fetchOrders(); 
+  fetchStats();
 
 }, [role]);
 
@@ -341,6 +369,16 @@ const handleChangeOrderStatus = (orderId, newStatus) => {
     });
 };
 
+  const monthlyChartData = [
+    ["Mesec", "Prihod (RSD)"],
+    ...monthlyStats.map((m) => [formatMonth(m.month), m.revenue]),
+  ];
+
+  const topProductsChartData = [
+    ["Proizvod", "Prihod (RSD)"],
+    ...topProductsStats.map((p) => [p.productName, p.totalRevenue]),
+  ];
+
   return (
     <div className="admin-page">
       <div className="admin-header">
@@ -366,6 +404,12 @@ const handleChangeOrderStatus = (orderId, newStatus) => {
           label="Porudžbine"
           onClick={() => setActiveTab('orders')}
           variant={activeTab === 'orders' ? 'primary' : 'secondary'}
+          className="tab-btn"
+        />
+        <Button
+          label="Statistika"
+          onClick={() => setActiveTab('stats')}
+          variant={activeTab === 'stats' ? 'primary' : 'secondary'}
           className="tab-btn"
         />
       </div>
@@ -711,6 +755,64 @@ const handleChangeOrderStatus = (orderId, newStatus) => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'stats' && (
+        <div className="admin-section">
+          <h3>Statistika prodaje</h3>
+
+          {statsLoading && <p>Učitavanje statistike...</p>}
+          {statsError && <p className="stats-error">{statsError}</p>}
+
+          {!statsLoading && !statsError && (
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h4>Prihod po mesecima</h4>
+                {monthlyStats.length === 0 ? (
+                  <p>Nema podataka za prikaz.</p>
+                ) : (
+                  <Chart
+                    chartType="LineChart"
+                    width="100%"
+                    height="280px"
+                    data={monthlyChartData}
+                    options={{
+                      colors: ["#2ecc71"],
+                      lineWidth: 3,
+                      pointSize: 6,
+                      legend: { position: "bottom" },
+                      curveType: "function",
+                      vAxis: { title: "RSD" },
+                      hAxis: { title: "Mesec" },
+                      chartArea: { left: 80, right: 20, top: 20, bottom: 100 },
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="stat-card">
+                <h4>Top proizvodi (prihod)</h4>
+                {topProductsStats.length === 0 ? (
+                  <p>Nema podataka za prikaz.</p>
+                ) : (
+                  <Chart
+                    chartType="BarChart"
+                    width="100%"
+                    height="320px"
+                    data={topProductsChartData}
+                    options={{
+                      colors: ["#3498db"],
+                      legend: { position: "none" },
+                      vAxis: { title: "Proizvod" },
+                      hAxis: { title: "RSD" },
+                      chartArea: { left: 300, right: 20, top: 20, bottom: 100 }
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

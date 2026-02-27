@@ -1345,6 +1345,7 @@ body {
 
 .admin-header {
   margin-bottom: 2rem;
+  text-align: center;
 }
 
 .admin-header h2 {
@@ -1363,6 +1364,7 @@ body {
   gap: 1rem;
   margin-bottom: 2rem;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .tab-btn {
@@ -1536,6 +1538,30 @@ body {
 .order-card:hover {
   box-shadow: var(--shadow);
   border-color: var(--primary-color);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.stat-card {
+  background: #fafafa;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.stat-card h4 {
+  margin-bottom: 1rem;
+  color: var(--dark-color);
+}
+
+.stats-error {
+  color: var(--danger-color);
+  font-weight: 600;
 }
 
 .order-card h5 {
