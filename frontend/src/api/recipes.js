@@ -35,3 +35,7 @@ export function createRecipe(payload) {
 export function deleteRecipe(id) {
   return apiFetch(`/recipes/${id}`, { method: "DELETE" });
 }
+
+export async function getRecipeNutrition(id) {
+  return apiFetch(`/recipes/${id}/nutrition`);
+}

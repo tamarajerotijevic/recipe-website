@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Chart } from "react-google-charts";
 import { adminGetMonthlyStats, adminGetOrders, adminGetOrder, adminGetTopProducts, adminUpdateOrderStatus } from "../api/orders";
@@ -382,9 +383,11 @@ const handleChangeOrderStatus = (orderId, newStatus) => {
   return (
     <div className="admin-page">
       <div className="admin-header">
+         
         <h2>Administrator Panel</h2>
         <p>Uređujte proizvode, recepte i porudžbine</p>
       </div>
+      
 
       {/* Tabovi */}
       <div className="admin-tabs">
