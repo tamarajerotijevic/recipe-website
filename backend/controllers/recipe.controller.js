@@ -18,7 +18,7 @@ exports.getAll = async (req, res) => {
 
               model: db.IngredientType,
 
-              attributes: ['id', 'name'],
+             attributes: ['id', 'name', 'edamamName'],
 
             },
 
@@ -64,7 +64,7 @@ exports.getById = async (req, res) => {
 
               model: db.IngredientType,
 
-              attributes: ['id', 'name'],
+             attributes: ['id', 'name', 'edamamName'],
 
             },
 
@@ -189,7 +189,7 @@ exports.create = async (req, res) => {
 
     const recipe = await db.Recipe.findByPk(created.id, {
       include: [
-        { model: db.RecipeIngredient, include: [{ model: db.IngredientType, attributes: ['id', 'name'] }] },
+        { model: db.RecipeIngredient, include: [{ model: db.IngredientType, attributes: ['id', 'name', 'edamamName'] }] },
       ],
     });
 

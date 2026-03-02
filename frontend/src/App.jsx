@@ -41,6 +41,7 @@ export default function App() {
     <>
       <Navbar role={role} userName={user?.name || user?.username || ""} />
 
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/recipes" element={<Recipes role={role} userProducts={userProducts} cartItems={cartItems} setCartItems={setCartItems} />} />

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { DUMMY_ORDERS } from '../data';
 import { createProduct, deleteProduct as apiDeleteProduct, getProducts } from '../api/products';
@@ -283,9 +284,11 @@ export default function Admin({ role }) {
   return (
     <div className="admin-page">
       <div className="admin-header">
+         
         <h2>Administrator Panel</h2>
         <p>Uređujte proizvode, recepte i porudžbine</p>
       </div>
+      
 
       {/* Tabovi */}
       <div className="admin-tabs">

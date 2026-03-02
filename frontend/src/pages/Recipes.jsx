@@ -1,6 +1,7 @@
+import WeatherCard from "../components/WeatherCard";
 import { useState, useEffect } from 'react';
 import { findMissingIngredients, countMissingIngredients, groupRecipesByMissing } from '../data';
-import { getRecipes, getFavoriteRecipeIds, addFavoriteRecipe, removeFavoriteRecipe } from '../api/recipes';
+import { getRecipes, getFavoriteRecipeIds, addFavoriteRecipe, removeFavoriteRecipe, getRecipeNutrition } from '../api/recipes';
 import { getProducts } from '../api/products';
 import { addToCart as apiAddToCart, getCart as apiGetCart } from '../api/cart';
 import Input from '../components/Input';
@@ -10,6 +11,7 @@ const EMPTY_ARRAY = [];
 
 export default function Recipes({
   role = "guest",
+  user = null,
   userProducts = EMPTY_ARRAY,
   cartItems = EMPTY_ARRAY,
   setCartItems = () => {}
@@ -26,7 +28,11 @@ export default function Recipes({
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [baseLoaded, setBaseLoaded] = useState(false);
- 
+
+  const [nutrition, setNutrition] = useState(null);
+  const [nutritionLoading, setNutritionLoading] = useState(false);
+  const [nutritionError, setNutritionError] = useState(null);
+
   const sortFavoritesFirst = (list) => {
     return [...list].sort((a, b) => (b.isFavorite === true) - (a.isFavorite === true));
   };
@@ -99,7 +105,39 @@ export default function Recipes({
     );
   }, [favoriteIds, baseLoaded]);
 
-  // useEffect za filtriranje i pretragu recepata
+  // ===== NUTRITION POST =====
+  useEffect(() => {
+    if (!selectedRecipe) {
+      setNutrition(null);
+      setNutritionLoading(false);
+      setNutritionError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setNutrition(null);
+    setNutritionError(null);
+    setNutritionLoading(true);
+
+    getRecipeNutrition(selectedRecipe.id, { method: 'POST' })
+      .then((data) => {
+        if (cancelled) return;
+        setNutrition(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setNutritionError(err?.message || 'Nije moguće izračunati nutritivne vrednosti.');
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setNutritionLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRecipe]);
+
   useEffect(() => {
     let filtered = recipes;
 
@@ -121,12 +159,8 @@ export default function Recipes({
     );
   };
 
-  // Pretraga handler
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  const handleSearch = (e) => setSearchTerm(e.target.value);
 
-  // Dugme omiljeni
   const handleToggleFavorite = async (id) => {
     if (role !== 'user') {
       alert('Only registered users can add favorites!');
@@ -145,21 +179,18 @@ export default function Recipes({
     }
   };
 
- // Provera da li je sastojak vec u korpi
   const isIngredientInCart = (ingredientName) => {
     return cartItems.some(
       item => item.ingredientType && item.ingredientType.toLowerCase() === ingredientName.toLowerCase()
     );
   };
 
-  // Dodavanje proizvoda u korpu
   const handleAddProductToCart = (product) => {
     if (role !== 'user') {
       alert('Samo registrovani korisnici mogu dodavati proizvode u korpu!');
       return;
     } 
 
-    // send to backend and refresh cart from server
     apiAddToCart(product.id, 1)
       .then(() => apiGetCart())
       .then((data) => {
@@ -182,23 +213,14 @@ export default function Recipes({
       });
   };
 
-  // Prikaz recepta
   const RecipeCard = ({ recipe }) => {
     const missingCount = countMissingIngredients(recipe, userProducts);
 
     return (
       <div className="recipe-card">
-
-        {/* <div className="recipe-image">{recipe.image}</div> */}
-
         <div className="recipe-image">
-        <img
-              src={recipe.image}
-              alt={recipe.name}
-              className="recipe-img"
-         />
+          <img src={recipe.image} alt={recipe.name} className="recipe-img" />
         </div>
-
         <div className="recipe-info">
           <h3>{recipe.name}</h3>
           <p className="recipe-description">{recipe.description}</p>
@@ -232,7 +254,6 @@ export default function Recipes({
     );
   };
 
-  // Prikaz sekcije recepata
   const RecipeSection = ({ title, recipes, icon }) => {
     if (recipes.length === 0) return null;
 
@@ -248,36 +269,21 @@ export default function Recipes({
     );
   };
 
-  /*if (role === 'admin') {
-    return (
-      <div className="recipes-page">
-        <div className="recipes-header">
-          <h2>Our Recipes</h2>
-          <p>Admini pristupaju receptima kroz Admin panel</p>
-        </div>
-      </div>
-    );
-  }*/
-
-  // Prikaz filtriranog prikaza za goste (svi recepti) i korisnike (sortirano po sastojcima)
   const showSortedView = role === 'user';
 
-  if (loading) {
-    return <div style={{ padding: 20 }}>Učitavanje recepata...</div>;
-  }
-
-  if (error) {
-    return <div style={{ padding: 20, color: 'red' }}>{error}</div>;
-  }
+  if (loading) return <div style={{ padding: 20 }}>Učitavanje recepata...</div>;
+  if (error) return <div style={{ padding: 20, color: 'red' }}>{error}</div>;
 
   return (
     <div className="recipes-page">
       <div className="recipes-header">
         <h2>Naši recepti</h2>
         <p>{showSortedView ? 'Sortirano po vašim proizvodima' : 'Pogledajte naše recepte'}</p>
+        <div style={{ marginTop: '1rem' }}>
+          <WeatherCard username={role === 'user' ? user?.username || 'guest' : 'guest'} />
+        </div>
       </div>
 
-      {/* Pretraga */}
       <div className="recipes-search">
         <Input
           label="Pretraži recepte"
@@ -294,81 +300,57 @@ export default function Recipes({
       <div className="recipes-container">
         {showSortedView ? (
           <>
-            {/* Recepti po nedostajućim sastojcima - samo za registrovane korisnike */}
-            <RecipeSection
-              title="Mogu da Napravim"
-              recipes={groupedRecipes.canMakeNow}
-              icon="✓"
-            />
-            <RecipeSection
-              title="Nedostaje 1–2 Sastojka"
-              recipes={groupedRecipes.missing1to2}
-              icon="◐"
-            />
-            <RecipeSection
-              title="Nedostaje Više od 2 Sastojka"
-              recipes={groupedRecipes.missingMore}
-              icon="◯"
-            />
+            <RecipeSection title="Mogu da Napravim" recipes={groupedRecipes.canMakeNow} icon="✓" />
+            <RecipeSection title="Nedostaje 1–2 Sastojka" recipes={groupedRecipes.missing1to2} icon="◐" />
+            <RecipeSection title="Nedostaje Više od 2 Sastojka" recipes={groupedRecipes.missingMore} icon="◯" />
           </>
         ) : (
-          <>
-            {/* Za goste prikaz svih recepata */}
-            <div className="recipe-section">
-              <h3>Svi recepti ({filteredRecipes.length})</h3>
-              <div className="recipes-grid">
-                {filteredRecipes.map((recipe) => (
-                  <RecipeCard key={recipe.id} recipe={recipe} />
-                ))}
-              </div>
+          <div className="recipe-section">
+            <h3>Svi recepti ({filteredRecipes.length})</h3>
+            <div className="recipes-grid">
+              {filteredRecipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
             </div>
-          </>
+          </div>
         )}
 
         {filteredRecipes.length === 0 && (
           <div className="no-recipes">
             <p>Nema pronađenih recepata za pretragu "{searchTerm}"</p>
-            <Button
-              label="Očisti pretragu"
-              onClick={() => setSearchTerm('')}
-              variant="secondary"
-            />
+            <Button label="Očisti pretragu" onClick={() => setSearchTerm('')} variant="secondary" />
           </div>
         )}
 
-        {/* Detalji recepta Modal */}
+        {/* MODAL DETALJI */}
         {selectedRecipe && !selectedIngredient && (
           <div className="recipe-details-modal">
             <div className="modal-content">
-              <button
-                className="close-modal"
-                onClick={() => setSelectedRecipe(null)}
-              >
-                ✕
-              </button>
+              <button className="close-modal" onClick={() => setSelectedRecipe(null)}>✕</button>
               <div className="modal-image">
-                <img
-                  src={selectedRecipe.image}
-                  alt={selectedRecipe.name}
-                  className="recipe-img"
-                />
+                <img src={selectedRecipe.image} alt={selectedRecipe.name} className="recipe-img" />
               </div>
               <h2>{selectedRecipe.name}</h2>
               <p className="modal-description">{selectedRecipe.description}</p>
 
               <div className="modal-details">
-                <div className="detail-item">
-                  <strong>Težina:</strong> {selectedRecipe.difficulty}
-                </div>
-                <div className="detail-item">
-                  <strong>Vreme:</strong> {selectedRecipe.prepTime}
-                </div>
-                <div className="detail-item">
-                  <strong>Ukupno Sastojaka:</strong> {selectedRecipe.ingredients.length}
-                </div>
+                <div className="detail-item"><strong>Težina:</strong> {selectedRecipe.difficulty}</div>
+                <div className="detail-item"><strong>Vreme:</strong> {selectedRecipe.prepTime}</div>
+                <div className="detail-item"><strong>Ukupno Sastojaka:</strong> {selectedRecipe.ingredients.length}</div>
               </div>
 
-              {/* Svi sastojci */}
+              <div className="modal-nutrition" style={{ marginTop: "1rem" }}>
+                <h4>Nutritivne vrednosti (ukupno za recept)</h4>
+                {nutritionLoading && <p>Učitavanje nutritivnih vrednosti...</p>}
+                {!nutritionLoading && nutritionError && <p style={{ color: "crimson" }}>{nutritionError}</p>}
+                {!nutritionLoading && !nutritionError && nutrition?.totals && (
+                  <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+                    <li><strong>Kalorije:</strong> {nutrition.totals.calories} kcal</li>
+                    <li><strong>Proteini:</strong> {nutrition.totals.protein} g</li>
+                    <li><strong>Masti:</strong> {nutrition.totals.fat} g</li>
+                    <li><strong>Ugljeni hidrati:</strong> {nutrition.totals.carbs} g</li>
+                  </ul>
+                )}
+              </div>
+
               <div className="modal-ingredients">
                 <h4>Sastojci:</h4>
                 <ul>
@@ -386,10 +368,8 @@ export default function Recipes({
                 </ul>
               </div>
 
-              {/* Nedostajući sastojci */}
               {(() => {
                 const missing = findMissingIngredients(selectedRecipe, userProducts);
-                
                 return missing.length > 0 && role === 'user' ? (
                   <div className="missing-summary">
                     <h4>Nedostajući Sastojci:</h4>
@@ -400,16 +380,9 @@ export default function Recipes({
                           <li key={idx} style={inCart ? { opacity: 0.7 } : undefined}>
                             {ingredient.name} - {ingredient.quantity}{ingredient.unit}
                             {inCart ? (
-                              <span style={{ marginLeft: '0.5rem', color: 'green' }}>
-                                ✓ Proizvod je dodat u korpu
-                              </span>
+                              <span style={{ marginLeft: '0.5rem', color: 'green' }}>✓ Proizvod je dodat u korpu</span>
                             ) : role === 'user' ? (
-                              <Button
-                                label="Odaberi proizvod"
-                                onClick={() => setSelectedIngredient(ingredient)}
-                                variant="secondary"
-                                className="select-product-btn"
-                              />
+                              <Button label="Odaberi proizvod" onClick={() => setSelectedIngredient(ingredient)} variant="secondary" className="select-product-btn" />
                             ) : null}
                           </li>
                         );
@@ -417,33 +390,21 @@ export default function Recipes({
                     </ul>
                   </div>
                 ) : missing.length === 0 && role === 'user' ? (
-                  <div className="can-make-msg">
-                    <p>✓ Imate sve sastojke za ovaj recept!</p>
-                  </div>
+                  <div className="can-make-msg"><p>✓ Imate sve sastojke za ovaj recept!</p></div>
                 ) : null;
               })()}
 
               <div className="modal-actions">
-                <Button
-                  label="Zatvori"
-                  onClick={() => setSelectedRecipe(null)}
-                  variant="secondary"
-                />
+                <Button label="Zatvori" onClick={() => setSelectedRecipe(null)} variant="secondary" />
               </div>
             </div>
           </div>
         )}
 
-        {/* Izbor proizvoda modal */}
         {selectedIngredient && (
           <div className="recipe-details-modal">
             <div className="modal-content">
-              <button
-                className="close-modal"
-                onClick={() => setSelectedIngredient(null)}
-              >
-                ✕
-              </button>
+              <button className="close-modal" onClick={() => setSelectedIngredient(null)}>✕</button>
               <h2>Izaberite proizvod za: {selectedIngredient.name}</h2>
               
               <div className="products-grid">
@@ -454,25 +415,14 @@ export default function Recipes({
                       <h4>{product.name}</h4>
                       <p><strong>{product.packageAmount}</strong></p>
                       <p className="product-price">{product.price.toFixed(2)} RSD</p>
-                      <Button
-                        label="Dodaj u Korpu"
-                        onClick={() => {
-                          handleAddProductToCart(product);
-                        }}
-                        variant="primary"
-                      />
+                      <Button label="Dodaj u Korpu" onClick={() => handleAddProductToCart(product)} variant="primary" />
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="modal-back-button">
-                <Button
-                  label="Nazad"
-                  onClick={() => setSelectedIngredient(null)}
-                  variant="secondary"
-                  style={{ width: '100%' }}
-                />
+                <Button label="Nazad" onClick={() => setSelectedIngredient(null)} variant="secondary" style={{ width: '100%' }} />
               </div>
             </div>
           </div>

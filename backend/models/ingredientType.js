@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     'IngredientType',
     {
       name: { type: DataTypes.STRING, allowNull: false, unique: true },
+      edamamName: { type: DataTypes.STRING, allowNull: true },
     },
     {
       tableName: 'ingredient_types',
