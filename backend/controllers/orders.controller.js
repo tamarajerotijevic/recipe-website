@@ -228,3 +228,77 @@ exports.adminUpdateStatus = async (req, res) => {
     return res.status(500).json({ message: "Greška pri promeni statusa." });
   }
 };
+
+exports.adminStatsMonthly = async (req, res) => {
+  try {
+    // Izraz za formatiranje datuma na nivou meseca, npr"2025-01" 
+    const monthExpr = db.sequelize.fn("DATE_FORMAT", db.sequelize.col("createdAt"), "%Y-%m");
+
+    // Uzimamo samo PAID narudžbine, grupišemo po mesecima i računamo broj narudžbina i ukupnu zaradu
+    const rows = await db.Order.findAll({
+      attributes: [
+        [monthExpr, "month"],
+        [db.sequelize.fn("COUNT", db.sequelize.col("id")), "orderCount"],
+        [db.sequelize.fn("SUM", db.sequelize.col("totalAmount")), "revenue"],
+      ],
+      where: { paymentStatus: "PAID" },
+      group: [monthExpr],
+      order: [[monthExpr, "ASC"]],
+      raw: true,
+    });
+
+    //pretvaramo u broj da ne bi imali stringove u frontend grafiku
+    const items = (rows || []).map((r) => ({
+      month: r.month,
+      orderCount: Number(r.orderCount || 0),
+      revenue: Number(r.revenue || 0),
+    }));
+
+    return res.json({ items });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Greška pri učitavanju statistike po mesecima." });
+  }
+};
+
+exports.adminStatsTopProducts = async (req, res) => {
+  try {
+
+    // Uzimamo samo PAID narudžbine, grupišemo po proizvodu i računamo ukupnu količinu 
+    // i zaradu, sortiramo po zaradi i limitiramo na top 10    
+    const rows = await db.OrderItem.findAll({
+      attributes: [
+        "productId",
+        "productNameSnapshot", 
+        [db.sequelize.fn("SUM", db.sequelize.col("OrderItem.quantity")), "totalQty"], 
+        [db.sequelize.fn("SUM", db.sequelize.col("OrderItem.lineTotal")), "totalRevenue"], 
+      ], 
+      include: [
+        {
+          model: db.Order,
+          attributes: [],
+          where: { paymentStatus: "PAID" },
+          required: true,
+        },
+      ],
+      group: ["OrderItem.productId", "OrderItem.productNameSnapshot"],
+      order: [[db.sequelize.fn("SUM", db.sequelize.col("OrderItem.lineTotal")), "DESC"]],
+      limit: 10,
+      raw: true,
+    });
+
+    // pretvaramo u broj da ne bi imali stringove u frontend grafiku
+
+    const items = (rows || []).map((r) => ({
+      productId: r.productId,
+      productName: r.productNameSnapshot,
+      totalQty: Number(r.totalQty || 0),
+      totalRevenue: Number(r.totalRevenue || 0),
+    }));
+
+    return res.json({ items });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Greška pri učitavanju top proizvoda." });
+  }
+};
