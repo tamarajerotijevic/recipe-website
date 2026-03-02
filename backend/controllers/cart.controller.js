@@ -32,6 +32,10 @@ exports.getCart = async (req, res) => {
 exports.addToCart = async (req, res) => {
   try {
     const userId = req.user.id;
+    if (req.body.userId) {
+    return res.status(400).json({ message: "Ne sme se slati userId (IDOR zaštita)." });
+    }
+
     const { productId, quantity } = req.body;
 
     if (!productId) {
@@ -69,24 +73,34 @@ exports.addToCart = async (req, res) => {
 exports.removeFromCart = async (req, res) => {
   try {
     const userId = req.user.id;
+
     const productId = Number(req.params.productId);
+    if (!Number.isInteger(productId) || productId < 1) {
+      return res.status(400).json({ message: "Neispravan productId." });
+    }
 
     const deleted = await db.CartItem.destroy({ where: { userId, productId } });
+
     if (!deleted) {
       return res.status(404).json({ message: "Stavka nije pronađena u korpi." });
     }
 
     return res.json({ message: "Obrisano iz korpe." });
   } catch (err) {
-    console.error(err);
+    console.error("removeFromCart error:", err);
     return res.status(500).json({ message: "Greška pri brisanju iz korpe." });
   }
 };
-
 exports.updateCartItemQuantity = async (req, res) => {
   try {
     const userId = req.user.id;
+    if (req.body.userId) {
+      return res.status(400).json({ message: "Ne sme se slati userId (IDOR zaštita)." });
+    }
     const productId = Number(req.params.productId);
+    if (!Number.isInteger(productId) || productId < 1) {
+      return res.status(400).json({ message: "Neispravan productId." });
+    }
     const { quantity } = req.body;
 
     if (!quantity) {
