@@ -2,7 +2,11 @@ const db = require('../models');
  
 exports.getAll = async (req, res) => {
   try {
-    const products = await db.Product.findAll({
+    const page = Number.parseInt(req.query.page, 10);
+    const limit = Number.parseInt(req.query.limit, 10);
+    const usePagination = Number.isInteger(page) && page > 0 && Number.isInteger(limit) && limit > 0;
+
+    const query = {
       include: [
         {
           model: db.IngredientType,
@@ -10,9 +14,30 @@ exports.getAll = async (req, res) => {
         },
       ],
       order: [['name', 'ASC']],
-    });
- 
-    res.json(products);
+    };
+
+    if (usePagination) {
+      const offset = (page - 1) * limit;
+      const { count, rows } = await db.Product.findAndCountAll({
+        ...query,
+        limit,
+        offset,
+        distinct: true,
+      });
+
+      return res.json({
+        data: rows,
+        pagination: {
+          page,
+          limit,
+          totalItems: count,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const products = await db.Product.findAll(query);
+    return res.json(products);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Greška pri čitanju proizvoda.' });

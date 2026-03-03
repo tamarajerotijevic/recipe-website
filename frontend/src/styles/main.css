@@ -481,6 +481,20 @@ body {
   text-align: center;
 }
 
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
 /*Recepti*/
 .recipes-page {
   flex: 1;

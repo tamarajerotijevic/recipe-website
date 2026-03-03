@@ -1,13 +1,14 @@
 import WeatherCard from "../components/WeatherCard";
 import { useState, useEffect } from 'react';
 import { findMissingIngredients, countMissingIngredients, groupRecipesByMissing } from '../data';
-import { getRecipes, getFavoriteRecipeIds, addFavoriteRecipe, removeFavoriteRecipe, getRecipeNutrition } from '../api/recipes';
+import { getRecipesPaged, getFavoriteRecipeIds, addFavoriteRecipe, removeFavoriteRecipe, getRecipeNutrition } from '../api/recipes';
 import { getProducts } from '../api/products';
 import { addToCart as apiAddToCart, getCart as apiGetCart } from '../api/cart';
 import Input from '../components/Input';
 import Button from '../components/Button';
 
 const EMPTY_ARRAY = [];
+const PAGE_LIMIT = 6;
 
 export default function Recipes({
   role = "guest",
@@ -28,6 +29,8 @@ export default function Recipes({
   const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [baseLoaded, setBaseLoaded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [nutrition, setNutrition] = useState(null);
   const [nutritionLoading, setNutritionLoading] = useState(false);
@@ -74,9 +77,10 @@ export default function Recipes({
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([getRecipes(), getProducts()])
-      .then(([recipesData, productsData]) => {
-        const normalizedRecipes = recipesData.map(normalizeRecipe).map((recipe) => ({
+    Promise.all([getRecipesPaged({ page, limit: PAGE_LIMIT }), getProducts()])
+      .then(([recipesResponse, productsData]) => {
+        const recipeItems = Array.isArray(recipesResponse) ? recipesResponse : recipesResponse?.data || [];
+        const normalizedRecipes = recipeItems.map(normalizeRecipe).map((recipe) => ({
           ...recipe,
           isFavorite: favoriteIds.includes(recipe.id),
         }));
@@ -87,12 +91,13 @@ export default function Recipes({
         setProducts(normalizedProducts);
         setFilteredRecipes(normalizedRecipes);
         setBaseLoaded(true);
+        setTotalPages(recipesResponse?.pagination?.totalPages || 1);
       })
       .catch((err) => {
         setError(err?.message || 'Greška pri učitavanju podataka.');
       })
       .finally(() => setLoading(false));
-  }, [role]);
+  }, [role, page]);
 
   useEffect(() => {
     if (!baseLoaded) return;
@@ -152,6 +157,12 @@ export default function Recipes({
     setFilteredRecipes(sortedFiltered);
     setGroupedRecipes(groupRecipesByMissing(sortedFiltered, userProducts));
   }, [searchTerm, recipes, userProducts]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages || 1);
+    }
+  }, [page, totalPages]);
 
   const getProductsForIngredientLocal = (ingredientName) => {
     return products.filter(
@@ -317,6 +328,24 @@ export default function Recipes({
           <div className="no-recipes">
             <p>Nema pronađenih recepata za pretragu "{searchTerm}"</p>
             <Button label="Očisti pretragu" onClick={() => setSearchTerm('')} variant="secondary" />
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <Button
+              label="Prethodna"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              variant="secondary"
+              disabled={page <= 1}
+            />
+            <span className="pagination-info">Strana {page} / {totalPages}</span>
+            <Button
+              label="Sledeća"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              variant="secondary"
+              disabled={page >= totalPages}
+            />
           </div>
         )}
 

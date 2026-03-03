@@ -4,6 +4,10 @@ export async function getRecipes() {
   return apiFetch("/recipes");
 }
 
+export async function getRecipesPaged({ page = 1, limit = 6 } = {}) {
+  return apiFetch(`/recipes?page=${page}&limit=${limit}`);
+}
+
 export async function getRecipeById(id) {
   return apiFetch(`/recipes/${id}`);
 }

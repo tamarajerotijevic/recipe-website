@@ -1,47 +1,52 @@
 const db = require('../models');
  
 exports.getAll = async (req, res) => {
-
   try {
+    const page = Number.parseInt(req.query.page, 10);
+    const limit = Number.parseInt(req.query.limit, 10);
+    const usePagination = Number.isInteger(page) && page > 0 && Number.isInteger(limit) && limit > 0;
 
-    const recipes = await db.Recipe.findAll({
-
+    const query = {
       include: [
-
         {
-
           model: db.RecipeIngredient,
-
           include: [
-
             {
-
               model: db.IngredientType,
-
-             attributes: ['id', 'name', 'edamamName'],
-
+              attributes: ['id', 'name', 'edamamName'],
             },
-
           ],
-
         },
-
       ],
-
       order: [['createdAt', 'DESC']],
+    };
 
-    });
+    if (usePagination) {
+      const offset = (page - 1) * limit;
+      const { count, rows } = await db.Recipe.findAndCountAll({
+        ...query,
+        limit,
+        offset,
+        distinct: true,
+      });
 
+      return res.json({
+        data: rows,
+        pagination: {
+          page,
+          limit,
+          totalItems: count,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const recipes = await db.Recipe.findAll(query);
     res.json(recipes);
-
   } catch (err) {
-
     console.error(err);
-
     res.status(500).json({ message: 'Greška pri čitanju recepata.' });
-
   }
-
 };
  
 exports.getById = async (req, res) => {
@@ -55,13 +60,9 @@ exports.getById = async (req, res) => {
       include: [
 
         {
-
           model: db.RecipeIngredient,
-
           include: [
-
             {
-
               model: db.IngredientType,
 
              attributes: ['id', 'name', 'edamamName'],

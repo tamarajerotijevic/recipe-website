@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getProducts } from '../api/products';
+import { getProductsPaged } from '../api/products';
 import { addToCart as apiAddToCart, getCart as apiGetCart } from '../api/cart';
+import { getIngredientTypes } from '../api/ingredientTypes';
 import Input from '../components/Input';
 import Button from '../components/Button';
 
 const EMPTY_ARRAY = [];
+const PAGE_LIMIT = 12;
 
 export default function Products({ role = 'guest', cartItems = EMPTY_ARRAY, setCartItems = () => {} }) {
   const [products, setProducts] = useState([]);
@@ -15,6 +17,8 @@ export default function Products({ role = 'guest', cartItems = EMPTY_ARRAY, setC
   const [selectedIngredientFilter, setSelectedIngredientFilter] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const normalizeProduct = (product) => ({
     ...product,
@@ -24,16 +28,30 @@ export default function Products({ role = 'guest', cartItems = EMPTY_ARRAY, setC
   });
 
   useEffect(() => {
-    getProducts()
+    getIngredientTypes()
       .then((data) => {
-        const normalized = data.map(normalizeProduct);
+        const names = (data || []).map((t) => t.name).filter(Boolean);
+        setIngredientTypes(names);
+      })
+      .catch(() => setIngredientTypes([]));
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    getProductsPaged({ page, limit: PAGE_LIMIT })
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.data || [];
+        const normalized = items.map(normalizeProduct);
         setProducts(normalized);
         setFilteredProducts(normalized);
-        setIngredientTypes(Array.from(new Set(normalized.map((p) => p.ingredientType))).filter(Boolean));
+        setIngredientTypes((prev) =>
+          prev.length > 0 ? prev : Array.from(new Set(normalized.map((p) => p.ingredientType))).filter(Boolean)
+        );
+        setTotalPages(data?.pagination?.totalPages || 1);
       })
       .catch((err) => setError(err?.message || 'Greška pri učitavanju proizvoda.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page]);
 
   // useEffect za filtriranje proizvoda na osnovu searchTerm i selectedIngredientFilter
   useEffect(() => {
@@ -56,6 +74,12 @@ export default function Products({ role = 'guest', cartItems = EMPTY_ARRAY, setC
 
     setFilteredProducts(filtered);
   }, [searchTerm, selectedIngredientFilter, products]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages || 1);
+    }
+  }, [page, totalPages]);
 
   // Handle search input change
   const handleSearch = (e) => {
@@ -199,7 +223,23 @@ export default function Products({ role = 'guest', cartItems = EMPTY_ARRAY, setC
           </div>
         )}
 
-       
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <Button
+              label="Prethodna"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              variant="secondary"
+              disabled={page <= 1}
+            />
+            <span className="pagination-info">Strana {page} / {totalPages}</span>
+            <Button
+              label="Sledeća"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              variant="secondary"
+              disabled={page >= totalPages}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
