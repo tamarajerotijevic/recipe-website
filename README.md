@@ -62,3 +62,13 @@ http://localhost:5173
 5. Prijava u aplikaciju
 Nakon pokretanja moguće je registrovati novog korisnika,prijaviti se postojećim nalogom.
 
+## API dokumentacija (Swagger) 
+ 
+Swagger UI je dostupan na: 
+http://localhost:3001/api-docs 
+ 
+OpenAPI specifikacija se generiše iz Swagger anotacija u: 
+backend/routes/*.routes.js 
+ 
+Swagger konfiguracija i šeme (schemas) su u: 
+backend/config/swagger.js 
