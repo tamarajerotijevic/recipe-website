@@ -3,7 +3,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const [users] = await queryInterface.sequelize.query(
-      "SELECT id FROM users ORDER BY id ASC"
+      "SELECT id FROM Users ORDER BY id ASC"
     );
     if (!users.length) {
       throw new Error("Seed orders: users table is empty. Create users first.");
