@@ -10,6 +10,6 @@ services:
    name: webprodavnica-frontend
    env: static
    rootDir: frontend
-   plan: free
+   plan: starter
    buildCommand: npm ci && npm run build
    startCommand: npx serve -s dist
