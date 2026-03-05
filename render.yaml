@@ -6,7 +6,7 @@ services:
    plan: free
    buildCommand: npm ci && chmod +x start.sh
    startCommand: ./start.sh
- - type: static_site
+ - type: static
    name: webprodavnica-frontend
    rootDir: frontend
    plan: free
