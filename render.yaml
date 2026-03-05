@@ -12,4 +12,4 @@ services:
    rootDir: frontend
    plan: starter
    buildCommand: npm ci && npm run build
-   startCommand: npx serve -s dist
+   staticPublishPath: dist
