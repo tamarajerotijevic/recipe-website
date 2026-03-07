@@ -3,9 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { vi, describe, test, expect, beforeEach } from "vitest";
 
 // --- MOCK API ---
-const mockGetProducts = vi.fn();
+const mockGetProductsPaged = vi.fn();
 vi.mock("../../src/api/products", () => ({
-  getProducts: (...args) => mockGetProducts(...args),
+  getProductsPaged: (...args) => mockGetProductsPaged(...args),
+}));
+
+const mockGetIngredientTypes = vi.fn();
+vi.mock("../../src/api/ingredientTypes", () => ({
+  getIngredientTypes: (...args) => mockGetIngredientTypes(...args),
 }));
 
 const mockAddToCart = vi.fn();
@@ -18,10 +23,12 @@ vi.mock("../../src/api/cart", () => ({
 import Products from "../../src/pages/Products";
 
 beforeEach(() => {
-  mockGetProducts.mockReset();
+  mockGetProductsPaged.mockReset();
+  mockGetIngredientTypes.mockReset();
   mockAddToCart.mockReset();
   mockGetCart.mockReset();
 
+  mockGetIngredientTypes.mockResolvedValue([]);
   vi.spyOn(window, "alert").mockImplementation(() => {});
 });
 
@@ -38,7 +45,8 @@ function renderProducts(props = {}) {
 
 describe("Products stranica", () => {
   test("prikazuje loading pa katalog proizvoda i broj pronađenih", async () => {
-    mockGetProducts.mockResolvedValueOnce([
+    mockGetProductsPaged.mockResolvedValueOnce({
+      data: [
       {
         id: 1,
         name: "Mleko",
@@ -55,7 +63,9 @@ describe("Products stranica", () => {
         ingredientType: "Pekarski",
         image: "🧺",
       },
-    ]);
+      ],
+      pagination: { totalPages: 1 },
+    });
 
     renderProducts();
 
@@ -74,10 +84,13 @@ describe("Products stranica", () => {
   });
 
   test("pretraga filtrira proizvode po nazivu ili tipu", async () => {
-    mockGetProducts.mockResolvedValueOnce([
+    mockGetProductsPaged.mockResolvedValueOnce({
+      data: [
       { id: 1, name: "Mleko", price: 100, packageAmount: "1L", ingredientType: "Mlečni", image: "🧺" },
       { id: 2, name: "Hleb", price: 80, packageAmount: "500g", ingredientType: "Pekarski", image: "🧺" },
-    ]);
+      ],
+      pagination: { totalPages: 1 },
+    });
 
     const user = userEvent.setup();
     renderProducts();
@@ -97,11 +110,14 @@ describe("Products stranica", () => {
   });
 
   test("filter po tipu (select) filtrira proizvode", async () => {
-    mockGetProducts.mockResolvedValueOnce([
+    mockGetProductsPaged.mockResolvedValueOnce({
+      data: [
       { id: 1, name: "Mleko", price: 100, packageAmount: "1L", ingredientType: "Mlečni", image: "🧺" },
       { id: 2, name: "Jogurt", price: 120, packageAmount: "500g", ingredientType: "Mlečni", image: "🧺" },
       { id: 3, name: "Hleb", price: 80, packageAmount: "500g", ingredientType: "Pekarski", image: "🧺" },
-    ]);
+      ],
+      pagination: { totalPages: 1 },
+    });
 
     const user = userEvent.setup();
     renderProducts();
@@ -121,9 +137,12 @@ describe("Products stranica", () => {
   });
 
   test("role=user prikazuje dugme 'Dodaj u Korpu' i klik poziva API + setCartItems", async () => {
-    mockGetProducts.mockResolvedValueOnce([
+    mockGetProductsPaged.mockResolvedValueOnce({
+      data: [
       { id: 10, name: "Mleko", price: 100, packageAmount: "1L", ingredientType: "Mlečni", image: "🧺" },
-    ]);
+      ],
+      pagination: { totalPages: 1 },
+    });
 
     mockAddToCart.mockResolvedValueOnce({ ok: true });
 
@@ -158,9 +177,12 @@ describe("Products stranica", () => {
   });
 
   test("role=guest nema dugme 'Dodaj u Korpu'", async () => {
-    mockGetProducts.mockResolvedValueOnce([
+    mockGetProductsPaged.mockResolvedValueOnce({
+      data: [
       { id: 1, name: "Hleb", price: 80, packageAmount: "500g", ingredientType: "Pekarski", image: "🧺" },
-    ]);
+      ],
+      pagination: { totalPages: 1 },
+    });
 
     renderProducts({ role: "guest" });
 
@@ -170,7 +192,7 @@ describe("Products stranica", () => {
   });
 
   test("ako API pukne prikazuje error poruku", async () => {
-    mockGetProducts.mockRejectedValueOnce(new Error("Network error"));
+    mockGetProductsPaged.mockRejectedValueOnce(new Error("Network error"));
 
     renderProducts();
 
