@@ -1,7 +1,7 @@
-import WeatherCard from "../components/WeatherCard";
 import { useState, useEffect } from 'react';
 import { findMissingIngredients, countMissingIngredients, groupRecipesByMissing } from '../data';
 import { getRecipesPaged, getFavoriteRecipeIds, addFavoriteRecipe, removeFavoriteRecipe, getRecipeNutrition } from '../api/recipes';
+import { searchExternalRecipes } from '../api/externalRecipes';
 import { getProducts } from '../api/products';
 import { addToCart as apiAddToCart, getCart as apiGetCart } from '../api/cart';
 import Input from '../components/Input';
@@ -31,6 +31,12 @@ export default function Recipes({
   const [baseLoaded, setBaseLoaded] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  const [externalQuery, setExternalQuery] = useState('');
+  const [externalRecipes, setExternalRecipes] = useState([]);
+  const [externalLoading, setExternalLoading] = useState(false);
+  const [externalError, setExternalError] = useState(null);
+  const [externalSearched, setExternalSearched] = useState(false);
 
   const [nutrition, setNutrition] = useState(null);
   const [nutritionLoading, setNutritionLoading] = useState(false);
@@ -172,6 +178,24 @@ export default function Recipes({
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
 
+  const handleExternalSearch = () => {
+    if (!externalQuery.trim()) {
+      setExternalRecipes([]);
+      setExternalError(null);
+      setExternalSearched(true);
+      return;
+    }
+
+    setExternalLoading(true);
+    setExternalError(null);
+    setExternalSearched(true);
+
+    searchExternalRecipes(externalQuery)
+      .then((items) => setExternalRecipes(items))
+      .catch((err) => setExternalError(err?.message || 'Greška pri učitavanju recepata.'))
+      .finally(() => setExternalLoading(false));
+  };
+
   const handleToggleFavorite = async (id) => {
     if (role !== 'user') {
       alert('Only registered users can add favorites!');
@@ -290,9 +314,6 @@ export default function Recipes({
       <div className="recipes-header">
         <h2>Naši recepti</h2>
         <p>{showSortedView ? 'Sortirano po vašim proizvodima' : 'Pogledajte naše recepte'}</p>
-        <div style={{ marginTop: '1rem' }}>
-          <WeatherCard username={role === 'user' ? user?.username || 'guest' : 'guest'} />
-        </div>
       </div>
 
       <div className="recipes-search">
@@ -348,6 +369,71 @@ export default function Recipes({
             />
           </div>
         )}
+
+        <div className="external-recipes">
+          <div className="external-recipes-header">
+            <h3>Ne možete da pronađete recept za hranu koju želite? Potražite ovde!</h3>
+            <p>Ovi recepti će biti prikazani odvojeno i ne utiču na vaše sastojke ili korpu.</p>
+          </div>
+
+          <div className="external-recipes-search">
+            <Input
+              label="Pretraži recepte na internetu"
+              value={externalQuery}
+              onChange={(e) => {
+                setExternalQuery(e.target.value);
+                setExternalSearched(false);
+              }}
+              placeholder="Npr. pasta, chicken, salad"
+              name="external-recipe-search"
+            />
+            <Button
+              label={externalLoading ? 'Pretraživanje u toku...' : 'Pretraži'}
+              onClick={handleExternalSearch}
+              variant="secondary"
+              disabled={externalLoading}
+            />
+          </div>
+
+          {externalError && (
+            <p className="external-recipes-error">{externalError}</p>
+          )}
+
+          {!externalLoading && externalSearched && externalRecipes.length === 0 && !externalError && (
+            <p className="external-recipes-empty">Nema pronađenih recepata za dati kriterijum.</p>
+          )}
+
+          {externalRecipes.length > 0 && (
+            <div className="external-recipes-grid">
+              {externalRecipes.map((recipe) => (
+                <div key={recipe.id} className="external-recipe-card">
+                  <div className="external-recipe-image">
+                    <img src={recipe.image} alt={recipe.name} />
+                  </div>
+                  <div className="external-recipe-info">
+                    <h4>{recipe.name}</h4>
+                    <p className="external-recipe-meta">
+                      {recipe.category && <span>{recipe.category}</span>}
+                      {recipe.area && <span>{recipe.area}</span>}
+                    </p>
+                    <div className="external-recipe-links">
+                      {recipe.sourceUrl && (
+                        <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+                          Izvor
+                        </a>
+                      )}
+                      {recipe.youtubeUrl && (
+                        <a href={recipe.youtubeUrl} target="_blank" rel="noreferrer">
+                          Video
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* MODAL DETALJI */}
         {selectedRecipe && !selectedIngredient && (
