@@ -3,8 +3,7 @@
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
-
-    await queryInterface.bulkInsert('ingredient_types', [
+    const rows = [
       { id: 1, name: 'Špageti', edamamName: 'spaghetti', createdAt: now, updatedAt: now },
       { id: 2, name: 'Jaja', edamamName: 'egg', createdAt: now, updatedAt: now },
       { id: 3, name: 'Sir', edamamName: 'cheese', createdAt: now, updatedAt: now },
@@ -28,7 +27,13 @@ module.exports = {
       { id: 21, name: 'Kikiriki', edamamName: 'peanuts', createdAt: now, updatedAt: now },
       { id: 22, name: 'Limeta', edamamName: 'lime', createdAt: now, updatedAt: now },
       { id: 23, name: 'Soja sos', edamamName: 'soy sauce', createdAt: now, updatedAt: now },
-    ]);
+    ];
+
+    await queryInterface.bulkDelete('ingredient_types', {
+      id: rows.map((row) => row.id),
+    });
+
+    await queryInterface.bulkInsert('ingredient_types', rows);
   },
 
   async down(queryInterface) {

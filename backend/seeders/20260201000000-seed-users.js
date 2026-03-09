@@ -51,7 +51,10 @@ module.exports = {
       });
     }
 
-    
+    await queryInterface.bulkDelete('Users', {
+      email: users.map((u) => u.email),
+    });
+
     await queryInterface.bulkInsert('Users', rows);
   },
 

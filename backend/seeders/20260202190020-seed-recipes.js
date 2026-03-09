@@ -3,8 +3,7 @@
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
-
-    await queryInterface.bulkInsert('recipes', [
+    const rows = [
       {
         id: 1,
         name: 'Karbonara špageti',
@@ -59,7 +58,13 @@ module.exports = {
         prepTimeMinutes: 20,
         createdAt: now, updatedAt: now,
       },
-    ]);
+    ];
+
+    await queryInterface.bulkDelete('recipes', {
+      id: rows.map((row) => row.id),
+    });
+
+    await queryInterface.bulkInsert('recipes', rows);
   },
 
   async down(queryInterface) {

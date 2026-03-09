@@ -87,7 +87,7 @@ export default function Home() {
       <div className="home-content">
         <div className="hero">
           <h2>
-            Dobrodošli na RecipeStore
+            Dobrodošli na RecipeStore!
             <img src="/logo.png" alt="RecipeStore" className="hero-logo" />
           </h2>
           <p>Vaš put do izvrsnih recepata i kvalitetnih sastojaka</p>

@@ -31,7 +31,7 @@ module.exports = {
       'Soja sos': 23,
     };
 
-    await queryInterface.bulkInsert('products', [
+    const rows = [
       { id: 1, name: 'Barilla Špageti 500g', ingredientTypeId: ingId['Špageti'], packageAmount: '500g', price: 250.00, imageUrl: '📦', createdAt: now, updatedAt: now },
       { id: 2, name: 'De Cecco Špageti 400g', ingredientTypeId: ingId['Špageti'], packageAmount: '400g', price: 280.00, imageUrl: '📦', createdAt: now, updatedAt: now },
 
@@ -100,7 +100,13 @@ module.exports = {
 
       { id: 45, name: 'Kikkoman soja sos 250ml', ingredientTypeId: ingId['Soja sos'], packageAmount: '250ml', price: 250.00, imageUrl: '🫙', createdAt: now, updatedAt: now },
       { id: 46, name: 'San-J tamari soja sos 200ml', ingredientTypeId: ingId['Soja sos'], packageAmount: '200ml', price: 280.00, imageUrl: '🫙', createdAt: now, updatedAt: now },
-    ]);
+    ];
+
+    await queryInterface.bulkDelete('products', {
+      id: rows.map((row) => row.id),
+    });
+
+    await queryInterface.bulkInsert('products', rows);
   },
 
   async down(queryInterface) {
