@@ -56,8 +56,8 @@ RecipeStore is a full-stack web application that helps users discover recipes ba
 Clone the repository:
 
 ```bash
-git clone <repository-url>
-cd RecipeStore
+git clone https://github.com/tamarajerotijevic/Recipe-website.git
+cd Recipe-website
 ```
 Install dependencies:
 ```bash
@@ -86,41 +86,7 @@ Start the frontend:
 ```bash
 npm run dev
 ```
-```
 
-1. Preuzimanje projekta
-Klonirati repozitorijum:
-git clone <link-do-repozitorijuma>
-cd projekat
-
-2. Pokretanje baze
-Pokrenuti XAMPP i startovati Apache i MySQL.
-Otvoriti u pregledaču:
-http://localhost/phpmyadmin
-Kreirati bazu podataka sa nazivom koji je naveden u .env fajlu backend-a.
-
-3. Pokretanje backend-a
-U terminalu:
-cd backend
-npm install
-npx sequelize-cli db:migrate
-npx sequelize-cli db:seed:all
-npm start
-
-Backend će biti dostupan na:
-http://localhost:3001
-
-4. Pokretanje frontend-a
-U drugom terminalu:
-cd frontend
-npm install
-npm run dev
-
-Frontend će biti dostupan na:
-http://localhost:5173
-
-5. Prijava u aplikaciju
-Nakon pokretanja moguće je registrovati novog korisnika,prijaviti se postojećim nalogom.
 
 ## Swagger
 
@@ -129,7 +95,8 @@ Nakon pokretanja moguće je registrovati novog korisnika,prijaviti se postojeći
  
 Swagger UI is available at: 
 http://localhost:3001/api-docs 
- 
+
+```
 
 ## Enviroment variables
 
@@ -156,12 +123,6 @@ GitHub Actions pipeline:
 - Runs tests on every push and pull request
 - Builds and publishes a Docker image to GHCR
 - Automatically deploys the application to Render
-
-Pipeline je definisan u [.github/workflows/ci.yml](.github/workflows/ci.yml).
-- Pokreće testove na svaki push i pull request.
-- Gradi Docker image i pushuje u GHCR.
-- Okida automatski deploy na Render preko Deploy Hook (za granu main).
-
 
 ## External APIs
 
