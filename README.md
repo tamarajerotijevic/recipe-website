@@ -3,13 +3,13 @@
 ![MySQL](https://img.shields.io/badge/MySQL-Database-blue)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED)
 
-![Home Page](image-4.png)
-![Reciepes](image-1.png)
-![Ingredients](image-2.png)
-![Cart](image-3.png)
-![Admin Dashboard - Products](image-5.png)
-![Admin Dashboard - Orders](image-6.png)
-![Admin Dashboard - Statistics](image-7.png)
+![Home Page](docs/images/image-4.png)
+![Reciepes](docs/images/image-1.png)
+![Ingredients](docs/images/image-2.png)
+![Cart](docs/images/image-3.png)
+![Admin Dashboard - Products](docs/images/image-5.png)
+![Admin Dashboard - Orders](docs/images/image-6.png)
+![Admin Dashboard - Statistics](docs/images/image-7.png)
 
 # RecipeStore 
 RecipeStore is a full-stack web application that helps users discover recipes based on the ingredients they already have. Users can browse recipes, manage their pantry, save favorite recipes, organize shopping through a cart system, and access an intuitive interface designed for a smooth user experience.
