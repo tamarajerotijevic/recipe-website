@@ -1,8 +1,3 @@
-![React](https://img.shields.io/badge/React-19-blue)
-![Node.js](https://img.shields.io/badge/Node.js-Express-green)
-![MySQL](https://img.shields.io/badge/MySQL-Database-blue)
-![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED)
-
 # RecipeStore 
 
 ## Screenshots
