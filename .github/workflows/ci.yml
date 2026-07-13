@@ -91,6 +91,6 @@ jobs:
           RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
 
       - name: Trigger Render deploy (frontend)
-        run: curl -fsSL -X POST "$RENDER_DEPLOY_HOOK_FRONTEND"
+        run: curl -fsSL -X POST "$RENDER_DEPLOY_HOOK_FRONTEND"  
         env:
           RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}

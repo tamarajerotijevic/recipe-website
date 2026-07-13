@@ -1,33 +1,93 @@
-# Veb prodavnica sa receptima
-  Ova aplikacija omogućava korisnicima da na brz i jednostavan način pronađu recepte, organizuju sastojke koje već imaju i lakše odluče šta mogu da pripreme bez dugog planiranja. Ideja aplikacije je da kuvanje učini praktičnijim – umesto da korisnik traži recepte pa proverava šta mu nedostaje, aplikacija povezuje recepte i dostupne proizvode na jednom mestu.
-  Korisnici mogu pretraživati i filtrirati recepte, označavati omiljene, upravljati sopstvenim proizvodima i koristiti korpu za organizaciju namirnica. Sve funkcionalnosti su objedinjene u preglednom i intuitivnom interfejsu koji omogućava brzo snalaženje i prijatno korišćenje.
-  Aplikacija je razvijena korišćenjem savremenih web tehnologija – React na frontend strani, Node.js i Express na backendu i MySQL bazu podataka – što obezbeđuje stabilnost, brzinu i mogućnost daljeg razvoja i proširenja funkcionalnosti.
+![React](https://img.shields.io/badge/React-19-blue)
+![Node.js](https://img.shields.io/badge/Node.js-Express-green)
+![MySQL](https://img.shields.io/badge/MySQL-Database-blue)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## Tim
-- Tamara Jerotijević 2022/0362
-- Jovana Dumić 2023/1017
-- Sandra Đurić 2022/0137
+![Home Page](image-4.png)
+![Reciepes](image-1.png)
+![Ingredients](image-2.png)
+![Cart](image-3.png)
+![Admin Dashboard - Products](image-5.png)
+![Admin Dashboard - Orders](image-6.png)
+![Admin Dashboard - Statistics](image-7.png)
 
-## Tehnologije
-Frontend:
+# RecipeStore 
+RecipeStore is a full-stack web application that helps users discover recipes based on the ingredients they already have. Users can browse recipes, manage their pantry, save favorite recipes, organize shopping through a cart system, and access an intuitive interface designed for a smooth user experience.
+
+## Technologies
+### Frontend:
 - React
 - JavaScript
 - Bootstrap
 
-Backend:
+### Backend:
 - Node.js
 - Express
 - Sequelize
 
-Baza podataka:
+### Database:
 - MySQL
 
-## Tipovi korisnika
-- Gost – može pregledati proizvode i recepte.
-- Registrovani korisnik – može koristiti korpu i upravljati omiljenim receptima.
-- Administrator – može dodavati i brisati proizvode i recepte.
+### Other
+- Docker
+- Swagger
+- JWT
+- Render
+- GitHub Actions
 
-## Uputstvo za pokretanje projketa
+## Features
+
+- User authentication (JWT)
+- Browse and search recipes
+- Filter recipes
+- Favorite recipes
+- Shopping cart
+- Admin Dashboard
+- Nutritional information (Spoonacular API)
+- Public recipe suggestions (TheMealDB API)
+
+## Live Demo
+- Frontend: https://internet-tehnologije-2025-ovoj.onrender.com
+- Backend: https://internet-tehnologije-2025-qkec.onrender.com
+
+## Local Setup
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd RecipeStore
+```
+Install dependencies:
+```bash
+cd backend
+npm install
+
+cd ../frontend
+npm install
+```
+Create the required .env files and configure your database connection.
+
+Run database migrations and seed data:
+
+```bash
+npx sequelize-cli db:migrate
+npx sequelize-cli db:seed:all
+```
+
+Start the backend:
+
+```bash
+npm start
+```
+
+Start the frontend:
+```bash
+npm run dev
+```
+```
+
 1. Preuzimanje projekta
 Klonirati repozitorijum:
 git clone <link-do-repozitorijuma>
@@ -62,75 +122,90 @@ http://localhost:5173
 5. Prijava u aplikaciju
 Nakon pokretanja moguće je registrovati novog korisnika,prijaviti se postojećim nalogom.
 
-## API dokumentacija (Swagger) 
+## Swagger
+
+```md
+## API Documentation 
  
-Swagger UI je dostupan na: 
+Swagger UI is available at: 
 http://localhost:3001/api-docs 
  
-OpenAPI specifikacija se generiše iz Swagger anotacija u: 
-backend/routes/*.routes.js 
- 
-Swagger konfiguracija i šeme (schemas) su u: 
-backend/config/swagger.js 
 
-## Konfiguracija okruženja
+## Enviroment variables
 
-### Backend (.env)
-Promenljive:
-- DB_USER, DB_PASS, DB_NAME, DB_HOST, DB_PORT, DB_DIALECT
-- JWT_SECRET, JWT_EXPIRES_IN
-- SPOONACULAR_API_KEY (za nutritivne vrednosti)
+Backend:
 
-### Frontend (.env)
-Za korišćenje cloud backend-a, postaviti:
-- VITE_API_URL : https://internet-tehnologije-2025-qkec.onrender.com/api
+- DB_USER
+- DB_PASS
+- DB_NAME
+- DB_HOST
+- DB_PORT
+- DB_DIALECT
+- JWT_SECRET
+- JWT_EXPIRES_IN
+- SPOONACULAR_API_KEY
+
+Frontend:
+
+- VITE_API_URL
 
 ## CI/CD
+
+GitHub Actions pipeline:
+
+- Runs tests on every push and pull request
+- Builds and publishes a Docker image to GHCR
+- Automatically deploys the application to Render
+
 Pipeline je definisan u [.github/workflows/ci.yml](.github/workflows/ci.yml).
 - Pokreće testove na svaki push i pull request.
 - Gradi Docker image i pushuje u GHCR.
 - Okida automatski deploy na Render preko Deploy Hook (za granu main).
 
-## Deployment (Cloud)
-Backend i frontend mogu da rade na Renderu, a baza na Aiven MySQL.
-Za frontend obavezno podesite VITE_API_URL na backend + /api.
 
-Produkcioni URL-ovi:
-- Frontend: https://internet-tehnologije-2025-ovoj.onrender.com
-- Backend: https://internet-tehnologije-2025-qkec.onrender.com
+## External APIs
 
-## Javni API
-Na stranici recepata postoji sekcija „Inspiracija iz javnog API-ja“ koja koristi TheMealDB.
-Ovi recepti su odvojeni i ne utiču na postojeće proizvode i korpu.
+The application integrates with TheMealDB API to provide recipe inspiration.
 
-## Pokretanje pomoću Docker-a
+Recipes fetched from the external API are displayed separately and do not affect the application's local products or shopping cart.
+
+## Docker
  
-Aplikacija se može pokrenuti i pomoću Docker-a i docker-compose-a, bez potrebe za ručnim instaliranjem Node.js ili MySQL baze.
+### 1. Running with Docker
  
-### 1. Pokretanje aplikacije
- 
-U root direktorijumu projekta pokrenuti:
+Run the following command from the project's root directory:
+
+```bash
  
 docker compose up --build
+```
  
-Ako se želi pokretanje u pozadini:
+To run the containers in detached mode:
+
+```bash
  
 docker compose up --build -d
+
+```
  
-Ova komanda će pokrenuti sledeće servise:
-- MySQL bazu
+This command starts:
+- MySQL
 - phpMyAdmin
-- backend server
-- frontend aplikaciju
+- backend
+- frontend
  
-### 2. Pokretanje migracija i seed podataka
+### 2. Running Database Migrations and Seeders
  
-Nakon pokretanja kontejnera potrebno je izvršiti migracije i ubaciti početne podatke:
+After the containers are up and running, execute the database migrations and seed the initial data
+
+```bash
  
 docker compose exec backend npx sequelize-cli db:migrate
 docker compose exec backend npx sequelize-cli db:seed:all
+
+```
  
-### 3. Pristup aplikaciji
+### 3. Available Services
  
 Frontend:
 http://localhost:5173
@@ -141,15 +216,34 @@ http://localhost:3001
 phpMyAdmin:
 http://localhost:8080
  
-MySQL baza:
+MySQL:
 localhost:3308
  
-### 4. Zaustavljanje aplikacije
- 
-Za zaustavljanje kontejnera:
+### 4. Stopping the Containers
+
+```bash
  
 docker compose down
+```
  
-Za brisanje i Docker volumena (baze):
+To remove the containers along with the Docker volumes (database data):
+```bash
  
 docker compose down -v
+```
+
+
+## Developed as a university team project
+
+## What I learned
+
+Through this project I gained experience with:
+
+- Building a full-stack application using React and Node.js
+- Designing REST APIs
+- Managing relational databases with MySQL and Sequelize
+- Authentication using JWT
+- Docker containerization
+- Deploying applications to Render
+- CI/CD using GitHub Actions
+- Working with Docker Compose
