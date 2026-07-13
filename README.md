@@ -10,7 +10,7 @@
 ![Admin Dashboard - Orders](docs/images/image-6.png)
 ![Admin Dashboard - Statistics](docs/images/image-7.png)
 
-# About
+## About
 RecipeStore is a full-stack web application that helps users discover recipes based on the ingredients they already have. Users can browse recipes, manage their pantry, save favorite recipes, organize shopping through a cart system, and access an intuitive interface designed for a smooth user experience.
 
 ## Technologies
